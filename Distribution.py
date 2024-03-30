@@ -158,7 +158,12 @@ class UniformDistr(DistrBase):
         print("Uniform distribution on [", self.range_min, ",", self.range_max, "]")
 
     def pdf(self, x):
-        pd = np.ones_like(x) / (self.range_max - self.range_min)
+        pd=[]
+        for i in range(len(x)):
+            if self.range_min<=x[i] and x[i]>=self.range_max:
+               pd.append(1 / (self.range_max - self.range_min))
+            else:
+                pd.append(0)
         return pd
 
     def cdf(self, x):
