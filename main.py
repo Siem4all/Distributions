@@ -1,61 +1,104 @@
-import inline as inline
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.special import gamma
-
-# Creating a series of data of in range of 1-50.
-x = np.linspace(-5, 5, 10000)
-mean = np.mean(x)
-sd = np.std(x)
-# colors
-color_map = plt.get_cmap('tab10').colors
-
-def normalPDF(x, mu, sigma):
-    """ Calculates PDF of the normal distribution at point 'x'
-
-    Parameters
-    ==========
-
-    x: float
-        x value of the function
-    mu: float
-        expectation value of the normal distribution
-    sigma: float
-        standard deviation of the normal distribution
-
-    Returns
-    =======
-
-    val: float
-        Value of the PDF at point 'x'
-    """
-
-    return 1. / np.sqrt(2. * np.pi * sigma ** 2) * np.exp(-0.5 * ((x - mu) ** 2) / (sigma ** 2))
+from scipy.stats import norm, t
 
 
-def studentPDF(x, nu):
-    """ Calculates PDF of the Student's t-distribution at point 'x'
+class DistributionEstimator:
+    def __init__(self, vector):
+        self.vector = vector
 
-    Parameters
-    ==========
+    def estimate_pdf(self, dist, stdev=None, df=None):
+        """
+        Estimate the probability density function (PDF) of the given distribution.
 
-    x: float
-        x value of the function
-    nu: int or float
-        number of degrees of freedom
+        Parameters:
+        - dist: The distribution type ('Uniform', 'Gaussian', or 'Student').
+        - stdev: The standard deviation of the distribution (optional, used for 'Gaussian' and 'Student').
+        - df: The degrees of freedom of the distribution (optional, used for 'Student').
 
-    Returns
-    =======
+        Returns:
+        - pdf: The estimated PDF.
+        """
+        pdf = None
 
-    val: float
-        Value of the PDF at point 'x'
-    """
+        if dist == 'Uniform':
+            min_val = np.min(self.vector)
+            max_val = np.max(self.vector)
+            pdf = 1.0 / (max_val - min_val)
+        elif dist == 'Gaussian':
+            mean = np.mean(self.vector)
+            std_dev = stdev if stdev is not None else np.std(self.vector)
+            pdf = norm.pdf(self.vector, loc=mean, scale=std_dev)
+        elif dist == 'Student':
+            mean = np.mean(self.vector)
+            std_dev = stdev if stdev is not None else np.std(self.vector)
+            df = df if df is not None else 5  # default degrees of freedom
+            pdf = t.pdf(self.vector, df, loc=mean, scale=std_dev)
 
-    return (gamma((nu + 1.) / 2.) / (np.sqrt(np.pi * nu) * gamma(nu / 2.))) * np.power((1. + x ** 2 / nu),
-                                                                                       -(nu + 1.) / 2.)
+        return pdf
+
+    def estimate_cdf(self, dist, stdev=None, df=None):
+        """
+        Estimate the cumulative distribution function (CDF) of the given distribution.
+
+        Parameters:
+        - dist: The distribution type ('Uniform', 'Gaussian', or 'Student').
+        - stdev: The standard deviation of the distribution (optional, used for 'Gaussian' and 'Student').
+        - df: The degrees of freedom of the distribution (optional, used for 'Student').
+
+        Returns:
+        - cdf: The estimated CDF.
+        """
+        cdf = None
+
+        if dist == 'Uniform':
+            cdf = (self.vector - np.min(self.vector)) / (np.max(self.vector) - np.min(self.vector))
+        elif dist == 'Gaussian':
+            mean = np.mean(self.vector)
+            std_dev = stdev if stdev is not None else np.std(self.vector)
+            cdf = norm.cdf(self.vector, loc=mean, scale=std_dev)
+        elif dist == 'Student':
+            mean = np.mean(self.vector)
+            std_dev = stdev if stdev is not None else np.std(self.vector)
+            df = df if df is not None else 5  # default degrees of freedom
+            cdf = t.cdf(self.vector, df, loc=mean, scale=std_dev)
+
+        return cdf
+
+    def estimate_likelihood(self, dist, stdev=None, df=None):
+        pdf = self.estimate_pdf(dist, stdev, df)
+        likelihood = np.prod(pdf)
+        return likelihood
 
 
-plt.plot(x, studentPDF(x, nu=3.), lw=2.5, c=color_map[0], label="Student's: v=3")
-plt.plot(x, normalPDF(x, mu=0, sigma=1), lw=2.5, c=color_map[6], dashes=[2, 2], label="Normal: $N(0,1)$")
-plt.legend(loc='best', fontsize=15)
-plt.show()
+def main():
+    # https://johannesbuchner.github.io/UltraNest/example-outliers.html
+    values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
+    values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
+    values_hi = np.array([7, 15, 8, 3, 6, 6, 10, 7, 14, 14])
+
+    n_data = len(values)
+    samples = []
+    for i in range(n_data):
+        # draw normal random points
+        u = np.random.normal(size=400)
+        v = values[i] + np.where(u < 0, u * values_lo[i], u * values_hi[i])
+        samples.append(v)
+
+    input_vector = np.array(samples)
+    estimator = DistributionEstimator(input_vector)
+
+    distributions = [
+        {'dist': 'Uniform', 'stdev': None, 'df': None},
+        {'dist': 'Gaussian', 'stdev': 1.0, 'df': None},
+        {'dist': 'Student', 'stdev': 1.0, 'df': 5}
+    ]
+
+    for dist in distributions:
+        likelihood = estimator.estimate_likelihood(dist['dist'], dist['stdev'], dist['df'])
+        dist['likelihood'] = likelihood
+
+    print(distributions)
+
+
+if __name__ == "__main__":
+    main()
