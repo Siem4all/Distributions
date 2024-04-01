@@ -46,7 +46,7 @@ class DistributionEstimator:
             raise ValueError("Invalid distribution")
 
         return cdf
-def dumpDictToPcl(dict):
+def dump_dict_to_pkl(dict):
     """
     Dump a single dict of data into pclOutputFile
     """
@@ -55,7 +55,7 @@ def dumpDictToPcl(dict):
     pickle.dump(dict, pclOutputFile)
 
 
-def writeDictToResFile(dict):
+def write_dict_to_res_file(dict):
     """
     Write a single dict of data into resOutputFile
     """
@@ -91,7 +91,7 @@ def run_simulations():
     # Generate x values for plotting
     x = np.linspace(np.min(dataset), np.max(dataset), 100)
     # Estimate PDF
-    pdf = estimator.estimatepdf(distribution_name, x)
+    pdf = estimator.estimate_pdf(distribution_name, x)
     # Estimate CDF
     cdf = estimator.estimate_cdf(distribution_name, x)
     data = {"distribution_name": distribution_name, "input_value": x, "pdf": pdf, "cdf": cdf}
