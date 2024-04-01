@@ -64,7 +64,7 @@ def writeDictToResFile(dict):
     printf(resFile, f'{dict}\n\n')
 
 # Example usage
-def main():
+def run_simulations():
     # Data
     values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
     values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
@@ -99,4 +99,4 @@ def main():
     write_dict_to_res_file(data)
 
 if __name__ == '__main__':
-    main()
+    run_simulations()
