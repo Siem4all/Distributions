@@ -1,104 +1,102 @@
+import pickle
+
 import numpy as np
-from scipy.stats import norm, t
+import scipy.stats as stats
+from fitter import Fitter
+import matplotlib.pyplot as plt
+from printf import printf
 
 
 class DistributionEstimator:
-    def __init__(self, vector):
-        self.vector = vector
+    def __init__(self, params):
+        self.params = params
 
-    def estimate_pdf(self, dist, stdev=None, df=None):
-        """
-        Estimate the probability density function (PDF) of the given distribution.
-
-        Parameters:
-        - dist: The distribution type ('Uniform', 'Gaussian', or 'Student').
-        - stdev: The standard deviation of the distribution (optional, used for 'Gaussian' and 'Student').
-        - df: The degrees of freedom of the distribution (optional, used for 'Student').
-
-        Returns:
-        - pdf: The estimated PDF.
-        """
-        pdf = None
-
-        if dist == 'Uniform':
-            min_val = np.min(self.vector)
-            max_val = np.max(self.vector)
-            pdf = 1.0 / (max_val - min_val)
-        elif dist == 'Gaussian':
-            mean = np.mean(self.vector)
-            std_dev = stdev if stdev is not None else np.std(self.vector)
-            pdf = norm.pdf(self.vector, loc=mean, scale=std_dev)
-        elif dist == 'Student':
-            mean = np.mean(self.vector)
-            std_dev = stdev if stdev is not None else np.std(self.vector)
-            df = df if df is not None else 5  # default degrees of freedom
-            pdf = t.pdf(self.vector, df, loc=mean, scale=std_dev)
+    def estimate_pdf(self, distribution, x):
+        if distribution == 'gamma':
+            pdf = stats.gamma.pdf(x, *self.params['gamma'])
+        elif distribution == 'lognorm':
+            pdf = stats.lognorm.pdf(x, *self.params['lognorm'])
+        elif distribution == 'beta':
+            pdf = stats.beta.pdf(x, self.params['beta'][0], self.params['beta'][1])
+        elif distribution == 'norm':
+            pdf = stats.norm.pdf(x, *self.params['norm'])
+        elif distribution == 'f':
+            pdf = stats.f.pdf(x, *self.params['f'])
+        elif distribution == 't':
+            pdf = stats.t.pdf(x, *self.params['t'])
+        else:
+            raise ValueError("Invalid distribution")
 
         return pdf
 
-    def estimate_cdf(self, dist, stdev=None, df=None):
-        """
-        Estimate the cumulative distribution function (CDF) of the given distribution.
-
-        Parameters:
-        - dist: The distribution type ('Uniform', 'Gaussian', or 'Student').
-        - stdev: The standard deviation of the distribution (optional, used for 'Gaussian' and 'Student').
-        - df: The degrees of freedom of the distribution (optional, used for 'Student').
-
-        Returns:
-        - cdf: The estimated CDF.
-        """
-        cdf = None
-
-        if dist == 'Uniform':
-            cdf = (self.vector - np.min(self.vector)) / (np.max(self.vector) - np.min(self.vector))
-        elif dist == 'Gaussian':
-            mean = np.mean(self.vector)
-            std_dev = stdev if stdev is not None else np.std(self.vector)
-            cdf = norm.cdf(self.vector, loc=mean, scale=std_dev)
-        elif dist == 'Student':
-            mean = np.mean(self.vector)
-            std_dev = stdev if stdev is not None else np.std(self.vector)
-            df = df if df is not None else 5  # default degrees of freedom
-            cdf = t.cdf(self.vector, df, loc=mean, scale=std_dev)
+    def estimate_cdf(self, distribution, x):
+        if distribution == 'gamma':
+            cdf = stats.gamma.cdf(x, *self.params['gamma'])
+        elif distribution == 'lognorm':
+            cdf = stats.lognorm.cdf(x, *self.params['lognorm'])
+        elif distribution == 'beta':
+            cdf = stats.beta.cdf(x, self.params['beta'][0], self.params['beta'][1])
+        elif distribution == 'norm':
+            cdf = stats.norm.cdf(x, *self.params['norm'])
+        elif distribution == 'f':
+            cdf = stats.f.cdf(x, *self.params['f'])
+        elif distribution == 't':
+            cdf = stats.t.cdf(x, *self.params['t'])
+        else:
+            raise ValueError("Invalid distribution")
 
         return cdf
-
-    def estimate_likelihood(self, dist, stdev=None, df=None):
-        pdf = self.estimate_pdf(dist, stdev, df)
-        likelihood = np.prod(pdf)
-        return likelihood
-
-
-def main():
-    # https://johannesbuchner.github.io/UltraNest/example-outliers.html
-    values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
-    values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
-    values_hi = np.array([7, 15, 8, 3, 6, 6, 10, 7, 14, 14])
-
-    n_data = len(values)
-    samples = []
-    for i in range(n_data):
-        # draw normal random points
-        u = np.random.normal(size=400)
-        v = values[i] + np.where(u < 0, u * values_lo[i], u * values_hi[i])
-        samples.append(v)
-
-    input_vector = np.array(samples)
-    estimator = DistributionEstimator(input_vector)
-
-    distributions = [
-        {'dist': 'Uniform', 'stdev': None, 'df': None},
-        {'dist': 'Gaussian', 'stdev': 1.0, 'df': None},
-        {'dist': 'Student', 'stdev': 1.0, 'df': 5}
-    ]
-
-    for dist in distributions:
-        likelihood = estimator.estimate_likelihood(dist['dist'], dist['stdev'], dist['df'])
-        dist['likelihood'] = likelihood
-
-    print(distributions)
+def dumpDictToPcl(dict):
+    """
+    Dump a single dict of data into pclOutputFile
+    """
+    fileName="fillters"
+    pclOutputFile = open(f'res/pcl_files/{fileName}.pcl', 'ab+')  # the path where we keep the the pcl file
+    pickle.dump(dict, pclOutputFile)
 
 
-if __name__ == "__main__":
-    main()
+def writeDictToResFile(dict):
+    """
+    Write a single dict of data into resOutputFile
+    """
+    fileName="fillters"
+    resFile = open(f'res/{fileName}.res', 'a+')
+    printf(resFile, f'{dict}\n\n')
+
+
+# Example usage
+# Data
+values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
+values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
+values_hi = np.array([7, 15, 8, 3, 6, 6, 10, 7, 14, 14])
+
+# Generating samples
+n_data = len(values)
+samples = []
+for i in range(n_data):
+    u = np.random.normal(size=400)
+    v = values[i] + np.where(u < 0, u * values_lo[i], u * values_hi[i])
+    samples.append(v)
+
+dataset = np.array(samples)
+
+# Fitting distributions
+f = Fitter(dataset, distributions=['norm'])
+f.fit()
+best_distribution = f.get_best(method='sumsquare_error')
+
+estimator = DistributionEstimator(f.fitted_param)
+distribution_name = next(iter(best_distribution))
+
+# Generate x values for plotting
+x = np.linspace(np.min(dataset), np.max(dataset), 100)
+# Estimate PDF
+pdf = estimator.estimate_pdf(distribution_name, x)
+# Estimate CDF
+cdf = estimator.estimate_cdf(distribution_name, x)
+dict={"distribution_name":distribution_name, "input_value":x, "pdf":pdf, "cdf":cdf}
+dumpDictToPcl(dict)
+writeDictToResFile(dict)
+
+
+
