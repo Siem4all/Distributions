@@ -63,40 +63,40 @@ def writeDictToResFile(dict):
     resFile = open(f'res/{fileName}.res', 'a+')
     printf(resFile, f'{dict}\n\n')
 
-
 # Example usage
-# Data
-values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
-values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
-values_hi = np.array([7, 15, 8, 3, 6, 6, 10, 7, 14, 14])
+def main():
+    # Data
+    values = np.array([15, 4, 2, 11, 1, -2, -1, -14, -39, -3])
+    values_lo = np.array([7, 16, 6, 3, 6, 5, 10, 6, 11, 13])
+    values_hi = np.array([7, 15, 8, 3, 6, 6, 10, 7, 14, 14])
 
-# Generating samples
-n_data = len(values)
-samples = []
-for i in range(n_data):
-    u = np.random.normal(size=400)
-    v = values[i] + np.where(u < 0, u * values_lo[i], u * values_hi[i])
-    samples.append(v)
+    # Generating samples
+    n_data = len(values)
+    samples = []
+    for i in range(n_data):
+        u = np.random.normal(size=400)
+        v = values[i] + np.where(u < 0, u * values_lo[i], u * values_hi[i])
+        samples.append(v)
 
-dataset = np.array(samples)
+    dataset = np.array(samples)
 
-# Fitting distributions
-f = Fitter(dataset, distributions=['norm'])
-f.fit()
-best_distribution = f.get_best(method='sumsquare_error')
+    # Fitting distributions
+    f = fitter.Fitter(dataset, distributions=['norm'])
+    f.fit()
+    best_distribution = f.get_best(method='sumsquare_error')
 
-estimator = DistributionEstimator(f.fitted_param)
-distribution_name = next(iter(best_distribution))
+    estimator = DistributionEstimator(f.fitted_param)
+    distribution_name = next(iter(best_distribution))
 
-# Generate x values for plotting
-x = np.linspace(np.min(dataset), np.max(dataset), 100)
-# Estimate PDF
-pdf = estimator.estimate_pdf(distribution_name, x)
-# Estimate CDF
-cdf = estimator.estimate_cdf(distribution_name, x)
-dict={"distribution_name":distribution_name, "input_value":x, "pdf":pdf, "cdf":cdf}
-dumpDictToPcl(dict)
-writeDictToResFile(dict)
+    # Generate x values for plotting
+    x = np.linspace(np.min(dataset), np.max(dataset), 100)
+    # Estimate PDF
+    pdf = estimator.estimatepdf(distribution_name, x)
+    # Estimate CDF
+    cdf = estimator.estimate_cdf(distribution_name, x)
+    data = {"distribution_name": distribution_name, "input_value": x, "pdf": pdf, "cdf": cdf}
+    dump_dict_to_pkl(data)
+    write_dict_to_res_file(data)
 
-
-
+if __name__ == '__main__':
+    main()
