@@ -81,7 +81,7 @@ def run_simulations():
     dataset = np.array(samples)
 
     # Fitting distributions
-    f = fitter.Fitter(dataset, distributions=['norm'])
+    f = fitter.Fitter(dataset, distributions=get_common_distributions())
     f.fit()
     best_distribution = f.get_best(method='sumsquare_error')
 
